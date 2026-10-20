@@ -1,0 +1,62 @@
+{
+  "family": "cdi-postgres",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "runtimePlatform": { "cpuArchitecture": "ARM64", "operatingSystemFamily": "LINUX" },
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::<ACCOUNT_ID>:role/cdi-ecs-execution-role",
+  "taskRoleArn": "arn:aws:iam::<ACCOUNT_ID>:role/cdi-postgres-task-role",
+  "containerDefinitions": [
+    {
+      "name": "postgres",
+      "image": "<ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/cdi/postgres:16-schema",
+      "essential": true,
+      "user": "70:70",
+      "portMappings": [{ "name": "postgres", "containerPort": 5432, "protocol": "tcp" }],
+      "environment": [
+        { "name": "POSTGRES_USER", "value": "app" },
+        { "name": "POSTGRES_DB", "value": "app" },
+        { "name": "PGDATA", "value": "/var/lib/postgresql/data/pgdata" }
+      ],
+      "secrets": [
+        {
+          "name": "POSTGRES_PASSWORD",
+          "valueFrom": "arn:aws:secretsmanager:<REGION>:<ACCOUNT_ID>:secret:cdi/postgres/password"
+        }
+      ],
+      "mountPoints": [
+        { "sourceVolume": "pgdata", "containerPath": "/var/lib/postgresql/data", "readOnly": false }
+      ],
+      "healthCheck": {
+        "command": ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U app || exit 1"],
+        "interval": 10,
+        "timeout": 5,
+        "retries": 5,
+        "startPeriod": 60
+      },
+      "stopTimeout": 60,
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/cdi-postgres",
+          "awslogs-region": "<REGION>",
+          "awslogs-stream-prefix": "postgres"
+        }
+      }
+    }
+  ],
+  "volumes": [
+    {
+      "name": "pgdata",
+      "efsVolumeConfiguration": {
+        "fileSystemId": "<EFS_ID>",
+        "transitEncryption": "ENABLED",
+        "authorizationConfig": {
+          "accessPointId": "<EFS_ACCESS_POINT_ID>",
+          "iam": "ENABLED"
+        }
+      }
+    }
+  ]
+}

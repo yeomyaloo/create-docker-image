@@ -1,0 +1,9 @@
+# syntax=docker/dockerfile:1
+# ③-A 스키마 포함 이미지: 첫 기동 때 MARIADB_DATABASE 에 대해 schema/*.sql 실행
+ARG BASE_IMAGE=cdi/mariadb:11.4
+FROM ${BASE_IMAGE}
+
+ARG SCHEMA_DIR=schema
+COPY --chmod=644 ${SCHEMA_DIR}/ /docker-entrypoint-initdb.d/
+
+LABEL org.opencontainers.image.description="MariaDB + schema (initialized on first start)"

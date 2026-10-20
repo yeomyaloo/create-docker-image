@@ -1,0 +1,34 @@
+# syntax=docker/dockerfile:1
+# ③-B 스키마가 "미리 적용된" 이미지: 빌드 중에 초기화를 끝내고 데이터 디렉터리째 이미지에 굽는다.
+#     기동 즉시 사용 가능 → 테스트/CI 픽스처용. (계정·비밀번호가 데이터에 굳으므로 운영용 아님)
+ARG BASE_IMAGE=cdi/postgres:16
+
+# ---- builder: 엔트리포인트로 initdb + schema/*.sql 실행까지만 하고 서버는 띄우지 않는다 ----
+FROM ${BASE_IMAGE} AS builder
+ARG SCHEMA_DIR=schema
+ARG DB_USER=app
+ARG DB_NAME=app
+# 공식 이미지는 /var/lib/postgresql/data 를 VOLUME 으로 선언한다.
+# VOLUME 경로에 쓴 내용은 이미지 레이어에 남지 않으므로, 다른 경로를 PGDATA 로 쓴다.
+ENV PGDATA=/var/lib/postgresql/baked \
+    POSTGRES_USER=${DB_USER} \
+    POSTGRES_DB=${DB_NAME}
+COPY --chown=postgres:postgres --chmod=644 ${SCHEMA_DIR}/ /docker-entrypoint-initdb.d/
+
+# 비밀번호는 BuildKit secret 으로 받는다 → 이미지 레이어/히스토리에 평문이 남지 않는다.
+# 엔트리포인트 마지막 줄 `exec "$@"`(서버 실행)를 지워서 "초기화만" 하고 종료시킨다.
+RUN --mount=type=secret,id=db_password,required=true \
+    export POSTGRES_PASSWORD="$(cat /run/secrets/db_password)" \
+ && sed -i 's/exec "\$@"/echo "[baked] init done, skip server start"/' /usr/local/bin/docker-entrypoint.sh \
+ && docker-entrypoint.sh postgres
+
+# ---- final: 초기화된 데이터 디렉터리만 깨끗한 베이스 위로 복사 ----
+FROM ${BASE_IMAGE}
+ARG DB_USER=app
+ARG DB_NAME=app
+ENV PGDATA=/var/lib/postgresql/baked \
+    POSTGRES_USER=${DB_USER} \
+    POSTGRES_DB=${DB_NAME}
+COPY --from=builder --chown=postgres:postgres /var/lib/postgresql/baked /var/lib/postgresql/baked
+
+LABEL org.opencontainers.image.description="PostgreSQL with schema pre-applied (for tests/CI)"

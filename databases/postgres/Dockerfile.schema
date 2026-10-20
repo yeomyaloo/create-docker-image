@@ -1,0 +1,10 @@
+# syntax=docker/dockerfile:1
+# ③-A 스키마 포함 이미지: 초기화 스크립트를 동봉하고, "첫 기동 때" 엔트리포인트가 실행한다.
+#     데이터 디렉터리가 비어 있을 때만 실행되므로 기존 볼륨을 붙이면 다시 돌지 않는다.
+ARG BASE_IMAGE=cdi/postgres:16
+FROM ${BASE_IMAGE}
+
+ARG SCHEMA_DIR=schema
+COPY --chown=postgres:postgres --chmod=644 ${SCHEMA_DIR}/ /docker-entrypoint-initdb.d/
+
+LABEL org.opencontainers.image.description="PostgreSQL + schema (initialized on first start)"

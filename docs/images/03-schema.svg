@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 480" width="960" height="480" role="img" aria-label="③ 스키마를 포함한 이미지 두 가지 방식">
+  <style>
+    .t{font-family:'Pretendard','Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif;fill:#1f2937}
+    .title{font-size:20px;font-weight:700}
+    .h{font-size:14px;font-weight:700}
+    .lane{font-size:14px;font-weight:700;fill:#0f766e}
+    .laneb{font-size:14px;font-weight:700;fill:#7c3aed}
+    .zone{font-size:12px;font-weight:700;fill:#64748b}
+    .s{font-size:12px;fill:#4b5563}
+    .m{font-family:Consolas,'SFMono-Regular',Menlo,monospace;font-size:11.5px;fill:#0f172a}
+    .arrow{stroke:#64748b;stroke-width:2;fill:none;marker-end:url(#a)}
+  </style>
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#64748b"/></marker></defs>
+  <rect width="960" height="480" rx="12" fill="#ffffff"/>
+  <text x="32" y="38" class="t title">③ 스키마를 포함한 이미지 — 두 가지 방식</text>
+
+  <!-- 시점 구분 -->
+  <text x="310" y="68" text-anchor="middle" class="t zone">빌드 시점 (docker build)</text>
+  <text x="782" y="68" text-anchor="middle" class="t zone">실행 시점 (docker run)</text>
+  <line x1="612" y1="56" x2="612" y2="330" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="6 5"/>
+
+  <!-- Lane A -->
+  <text x="32" y="98" class="t lane">A. schema — 초기화 스크립트 동봉 (첫 기동 때 실행)</text>
+  <rect x="32"  y="108" width="150" height="78" rx="10" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="107" y="136" text-anchor="middle" class="t h">base 이미지</text>
+  <text x="107" y="160" text-anchor="middle" class="m">cdi/postgres:16</text>
+  <path d="M182,147 H210" class="arrow"/>
+  <rect x="212" y="108" width="200" height="78" rx="10" fill="#ecfdf5" stroke="#10b981" stroke-width="1.5"/>
+  <text x="312" y="134" text-anchor="middle" class="m">COPY schema/ →</text>
+  <text x="312" y="154" text-anchor="middle" class="m">/docker-entrypoint-initdb.d</text>
+  <text x="312" y="175" text-anchor="middle" class="t s">SQL 파일만 담긴다</text>
+  <path d="M412,147 H440" class="arrow"/>
+  <rect x="442" y="108" width="150" height="78" rx="10" fill="#ecfdf5" stroke="#10b981" stroke-width="2.5"/>
+  <text x="517" y="136" text-anchor="middle" class="t h">이미지</text>
+  <text x="517" y="160" text-anchor="middle" class="m">16-schema</text>
+  <path d="M592,147 H630" class="arrow"/>
+  <rect x="632" y="108" width="180" height="78" rx="10" fill="#fefce8" stroke="#eab308" stroke-width="1.5"/>
+  <text x="722" y="134" text-anchor="middle" class="t s">빈 볼륨 감지 → initdb</text>
+  <text x="722" y="154" text-anchor="middle" class="t s">→ *.sql 순서대로 실행</text>
+  <text x="722" y="175" text-anchor="middle" class="t s">(수 초 ~ 수십 초)</text>
+  <path d="M812,147 H838" class="arrow"/>
+  <rect x="840" y="108" width="88" height="78" rx="10" fill="#f0fdf4" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="884" y="152" text-anchor="middle" class="t h">ready</text>
+
+  <!-- Lane B -->
+  <text x="32" y="228" class="t laneb">B. baked — 빌드 중에 초기화까지 끝내고 데이터째 굽기</text>
+  <rect x="32"  y="238" width="150" height="78" rx="10" fill="#f5f3ff" stroke="#8b5cf6" stroke-width="1.5"/>
+  <text x="107" y="264" text-anchor="middle" class="t h">builder 스테이지</text>
+  <text x="107" y="286" text-anchor="middle" class="t s">base + schema/</text>
+  <text x="107" y="304" text-anchor="middle" class="t s">secret: db_password</text>
+  <path d="M182,277 H210" class="arrow"/>
+  <rect x="212" y="238" width="200" height="78" rx="10" fill="#f5f3ff" stroke="#8b5cf6" stroke-width="1.5"/>
+  <text x="312" y="262" text-anchor="middle" class="m">RUN docker-entrypoint.sh</text>
+  <text x="312" y="284" text-anchor="middle" class="t s">exec "$@" 를 지워서</text>
+  <text x="312" y="302" text-anchor="middle" class="t s">초기화만 하고 종료</text>
+  <path d="M412,277 H440" class="arrow"/>
+  <rect x="442" y="238" width="150" height="78" rx="10" fill="#f5f3ff" stroke="#8b5cf6" stroke-width="2.5"/>
+  <text x="517" y="262" text-anchor="middle" class="t h">이미지 16-baked</text>
+  <text x="517" y="284" text-anchor="middle" class="m">COPY --from=builder</text>
+  <text x="517" y="302" text-anchor="middle" class="m">/var/lib/…/baked</text>
+  <path d="M592,277 H630" class="arrow"/>
+  <rect x="632" y="238" width="180" height="78" rx="10" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="722" y="270" text-anchor="middle" class="t s">초기화 단계 없음</text>
+  <text x="722" y="292" text-anchor="middle" class="t s">데이터가 이미 있다</text>
+  <path d="M812,277 H838" class="arrow"/>
+  <rect x="840" y="238" width="88" height="78" rx="10" fill="#f0fdf4" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="884" y="272" text-anchor="middle" class="t h">ready</text>
+  <text x="884" y="292" text-anchor="middle" class="t s">즉시</text>
+
+  <!-- 비교 -->
+  <rect x="32" y="348" width="440" height="110" rx="10" fill="#f0fdfa" stroke="#99f6e4"/>
+  <text x="48" y="374" class="t lane">A. schema — 운영 · 스테이징 기본값</text>
+  <text x="48" y="398" class="t s">+ 비밀번호는 실행 시 주입 (이미지에 비밀 없음)</text>
+  <text x="48" y="418" class="t s">+ 이미지가 가볍고 모든 DB(postgres/mysql/mariadb/mongodb) 지원</text>
+  <text x="48" y="438" class="t s">− 첫 기동이 스키마 실행 시간만큼 느림, 기존 볼륨엔 다시 안 돎</text>
+
+  <rect x="488" y="348" width="440" height="110" rx="10" fill="#faf5ff" stroke="#ddd6fe"/>
+  <text x="504" y="374" class="t laneb">B. baked — 테스트 · CI 픽스처용</text>
+  <text x="504" y="398" class="t s">+ 기동 즉시 사용, 시드 데이터까지 고정된 스냅샷</text>
+  <text x="504" y="418" class="t s">− 빌드 때 계정 · 비밀번호가 데이터에 굳는다 → 운영 금지</text>
+  <text x="504" y="438" class="t s">− VOLUME 경로를 피해야 함 (PGDATA / --datadir 변경), postgres · mysql</text>
+</svg>

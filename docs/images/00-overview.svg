@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 270" width="960" height="270" role="img" aria-label="create-docker-image 전체 흐름">
+  <style>
+    .t{font-family:'Pretendard','Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif;fill:#1f2937}
+    .title{font-size:20px;font-weight:700}
+    .h{font-size:15px;font-weight:700}
+    .s{font-size:12px;fill:#4b5563}
+    .m{font-family:Consolas,'SFMono-Regular',Menlo,monospace;font-size:12px;fill:#0f172a}
+    .arrow{stroke:#64748b;stroke-width:2;fill:none;marker-end:url(#a)}
+  </style>
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#64748b"/></marker></defs>
+  <rect width="960" height="270" rx="12" fill="#ffffff"/>
+  <text x="32" y="42" class="t title">create-docker-image 전체 흐름</text>
+
+  <rect x="32"  y="78" width="160" height="116" rx="10" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="112" y="106" text-anchor="middle" class="t h">소스</text>
+  <text x="112" y="132" text-anchor="middle" class="m">databases/&lt;db&gt;/</text>
+  <text x="112" y="154" text-anchor="middle" class="t s">Dockerfile · conf/</text>
+  <text x="112" y="174" text-anchor="middle" class="t s">schema/*.sql</text>
+
+  <rect x="220" y="78" width="160" height="116" rx="10" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="300" y="106" text-anchor="middle" class="t h">① base 이미지</text>
+  <text x="300" y="132" text-anchor="middle" class="m">cdi/postgres:16</text>
+  <text x="300" y="154" text-anchor="middle" class="t s">공식 이미지 + 설정</text>
+  <text x="300" y="174" text-anchor="middle" class="t s">+ HEALTHCHECK</text>
+
+  <rect x="408" y="78" width="160" height="116" rx="10" fill="#ecfdf5" stroke="#10b981" stroke-width="1.5"/>
+  <text x="488" y="106" text-anchor="middle" class="t h">③ schema / baked</text>
+  <text x="488" y="132" text-anchor="middle" class="m">16-schema · 16-baked</text>
+  <text x="488" y="154" text-anchor="middle" class="t s">스키마를 품은 이미지</text>
+  <text x="488" y="174" text-anchor="middle" class="t s">base 위에 한 층 더</text>
+
+  <rect x="596" y="78" width="160" height="116" rx="10" fill="#fefce8" stroke="#eab308" stroke-width="1.5"/>
+  <text x="676" y="106" text-anchor="middle" class="t h">② 실행 · 검증</text>
+  <text x="676" y="132" text-anchor="middle" class="m">run.sh → test.sh</text>
+  <text x="676" y="154" text-anchor="middle" class="t s">포트 · 볼륨 · 헬스체크</text>
+  <text x="676" y="174" text-anchor="middle" class="t s">테이블 생성 확인</text>
+
+  <rect x="784" y="78" width="144" height="116" rx="10" fill="#fff7ed" stroke="#f97316" stroke-width="1.5"/>
+  <text x="856" y="106" text-anchor="middle" class="t h">④ AWS</text>
+  <text x="856" y="132" text-anchor="middle" class="m">ECR → ECS</text>
+  <text x="856" y="154" text-anchor="middle" class="t s">멀티아키 · OIDC</text>
+  <text x="856" y="174" text-anchor="middle" class="t s">Secrets · EFS</text>
+
+  <path d="M192,136 H218" class="arrow"/>
+  <path d="M380,136 H406" class="arrow"/>
+  <path d="M568,136 H594" class="arrow"/>
+  <path d="M756,136 H782" class="arrow"/>
+
+  <text x="32" y="232" class="t s">스키마가 아직 없으면 ① → ②,  스키마가 정해지면 ① → ③ → ②,  배포는 ④.  번호는 문서(docs/0N-*.md) 순서와 같다.</text>
+</svg>

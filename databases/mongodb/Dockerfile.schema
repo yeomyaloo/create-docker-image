@@ -1,0 +1,10 @@
+# syntax=docker/dockerfile:1
+# ③-A "스키마" 포함 이미지: MongoDB 는 스키마리스지만
+#     컬렉션 + $jsonSchema 검증 규칙 + 인덱스를 초기화 스크립트로 고정할 수 있다.
+ARG BASE_IMAGE=cdi/mongodb:7.0
+FROM ${BASE_IMAGE}
+
+ARG SCHEMA_DIR=schema
+COPY --chmod=644 ${SCHEMA_DIR}/ /docker-entrypoint-initdb.d/
+
+LABEL org.opencontainers.image.description="MongoDB + collections/validators/indexes (initialized on first start)"

@@ -1,0 +1,66 @@
+name: build-push-ecr
+
+# main 에 DB 이미지 소스가 바뀌면 자동, 또는 Actions 탭에서 수동 실행
+on:
+  push:
+    branches: [main]
+    paths: ["databases/**", "scripts/**", ".github/workflows/build-push-ecr.yml"]
+  workflow_dispatch:
+    inputs:
+      db:
+        description: "대상 DB"
+        type: choice
+        options: [all, postgres, mysql, mariadb, mongodb, redis]
+        default: all
+
+# OIDC: GitHub 이 발급한 토큰으로 IAM Role 을 맡는다 → AWS 액세스 키를 Secrets 에 저장하지 않는다
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      dbs: ${{ steps.set.outputs.dbs }}
+      enabled: ${{ steps.set.outputs.enabled }}
+    steps:
+      - id: set
+        env:
+          INPUT_DB: ${{ inputs.db }}
+          ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+        run: |
+          if [ -z "$INPUT_DB" ] || [ "$INPUT_DB" = all ]; then
+            echo 'dbs=["postgres","mysql","mariadb","mongodb","redis"]' >> "$GITHUB_OUTPUT"
+          else
+            echo "dbs=[\"$INPUT_DB\"]" >> "$GITHUB_OUTPUT"
+          fi
+          # AWS 설정 전에는 실패 대신 건너뛴다 (저장소 Variables 에 AWS_ROLE_ARN 을 넣으면 활성화)
+          if [ -n "$ROLE_ARN" ]; then echo "enabled=true" >> "$GITHUB_OUTPUT"; else echo "enabled=false" >> "$GITHUB_OUTPUT"; fi
+
+  push:
+    needs: plan
+    if: needs.plan.outputs.enabled == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        db: ${{ fromJSON(needs.plan.outputs.dbs) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      # arm64 이미지를 x86 러너에서 빌드하기 위한 에뮬레이터
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build & push
+        env:
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+          DB: ${{ matrix.db }}
+        run: bash scripts/push-ecr.sh "$DB"
