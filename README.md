@@ -51,7 +51,8 @@ bash scripts/push-ecr.sh postgres          # ④ ECR 푸시 (amd64 + arm64)
 │   ├── build.sh           # 로컬 빌드
 │   ├── run.sh / stop.sh   # 실행 · 정리
 │   ├── test.sh            # healthy 대기 + 스키마 확인
-│   └── push-ecr.sh        # ECR 멀티아키 푸시
+│   ├── push-ecr.sh        # ECR 멀티아키 푸시
+│   └── setup-aws-iam.sh   # OIDC 공급자 + IAM 역할 (GitHub 푸시 · ECS)
 ├── aws/
 │   ├── ecr-lifecycle-policy.json
 │   ├── ecs/postgres-task-definition.json

@@ -32,27 +32,26 @@ PLATFORMS=linux/arm64 bash scripts/push-ecr.sh mysql
 [`.github/workflows/build-push-ecr.yml`](../.github/workflows/build-push-ecr.yml)은 `main`에서 `databases/**`가 바뀌면 5개 DB를 matrix로 푸시한다.
 AWS 액세스 키를 GitHub Secrets에 넣지 않고, **GitHub이 발급한 OIDC 토큰으로 IAM Role을 잠깐 맡는다**.
 
-한 번만 설정한다.
+[`scripts/setup-aws-iam.sh`](../scripts/setup-aws-iam.sh) 한 번으로 설정한다. 여러 번 실행해도 안전하다(있으면 정책만 갱신).
 
 ```bash
-# (1) GitHub OIDC 공급자 등록 (계정당 1회)
-aws iam create-open-id-connect-provider \
-  --url https://token.actions.githubusercontent.com \
-  --client-id-list sts.amazonaws.com
-
-# (2) 역할 생성: main 브랜치에서 실행된 이 저장소의 워크플로만 맡을 수 있다
-sed "s/<ACCOUNT_ID>/$AWS_ACCOUNT_ID/g" aws/iam/github-oidc-trust-policy.json > /tmp/trust.json
-aws iam create-role --role-name cdi-github-ecr-push \
-  --assume-role-policy-document file:///tmp/trust.json
-
-# (3) 권한: cdi/* 저장소에만 푸시
-sed -e "s/<ACCOUNT_ID>/$AWS_ACCOUNT_ID/g" -e "s/<REGION>/$AWS_REGION/g" \
-  aws/iam/ecr-push-policy.json > /tmp/ecr-push.json
-aws iam put-role-policy --role-name cdi-github-ecr-push \
-  --policy-name ecr-push --policy-document file:///tmp/ecr-push.json
+aws sso login                              # 또는 aws configure — IAM 관리 권한이 있는 계정
+DRY_RUN=1 bash scripts/setup-aws-iam.sh    # 어떤 aws 명령이 실행될지 먼저 확인
+bash scripts/setup-aws-iam.sh
 ```
 
-GitHub 저장소 → Settings → Secrets and variables → Actions → **Variables**에 추가한다.
+| 만드는 것 | 이름 | 권한 범위 |
+|---|---|---|
+| OIDC 공급자 | `token.actions.githubusercontent.com` | 계정당 1개, GitHub 토큰을 신뢰 |
+| 푸시 역할 | `cdi-github-ecr-push` | **이 저장소의 `main` 브랜치**에서 실행된 워크플로만 맡을 수 있음 → `cdi/*` ECR에만 푸시 |
+| ECS 실행 역할 | `cdi-ecs-execution-role` | 이미지 pull · 로그 쓰기 · `cdi/*` 시크릿 읽기 |
+| ECS 태스크 역할 | `cdi-postgres-task-role` | EFS 마운트 (`EFS_ID`, `EFS_ACCESS_POINT_ID`를 줄 때만 생성) |
+
+> **왜 신뢰 정책에 브랜치까지 거나?** `sub` 조건이 `repo:<저장소>:ref:refs/heads/main`으로 고정되어 있어서,
+> 포크나 다른 브랜치, PR에서 돈 워크플로는 이 역할을 맡을 수 없다. 저장소 이름만 걸면 누구든 브랜치를 만들어 푸시 권한을 얻을 수 있다.
+> 다른 저장소 · 브랜치를 쓰려면 `GITHUB_REPO=owner/name GITHUB_BRANCH=release bash scripts/setup-aws-iam.sh`.
+
+`gh` CLI로 로그인되어 있으면 아래 Variables도 스크립트가 넣는다. 아니면 GitHub 저장소 → Settings → Secrets and variables → Actions → **Variables**에 직접 추가한다.
 
 | 이름 | 값 |
 |---|---|
@@ -86,8 +85,7 @@ AP_ID=$(aws efs create-access-point --file-system-id "$EFS_ID" \
 aws logs create-log-group --log-group-name /ecs/cdi-postgres
 
 # (4) 역할: 실행 역할(이미지 pull·시크릿·로그) / 태스크 역할(EFS 마운트)
-#     실행 역할 = AmazonECSTaskExecutionRolePolicy + aws/iam/ecs-execution-secrets-policy.json
-#     태스크 역할 = aws/iam/ecs-task-role-policy.json
+EFS_ID="$EFS_ID" EFS_ACCESS_POINT_ID="$AP_ID" bash scripts/setup-aws-iam.sh
 
 # (5) 태스크 정의 등록 (자리표시자 치환)
 sed -e "s/<ACCOUNT_ID>/$AWS_ACCOUNT_ID/g" -e "s/<REGION>/$AWS_REGION/g" \
